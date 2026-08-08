@@ -7,8 +7,9 @@ import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 
-// replace with your own imports, see the usage snippet for details
-import lanyard from "../assets/lanyard/lanyard.png";
+// Use public paths for assets
+const DEFAULT_LANYARD_IMAGE = "/assets/lanyard/lanyard.png";
+const DEFAULT_CARD_GLB = "/assets/lanyard/card.glb";
 
 import * as THREE from 'three';
 import './Lanyard.css';
@@ -35,7 +36,7 @@ export default function Lanyard({
   frontImage = null,
   backImage = null,
   imageFit = 'cover',
-  lanyardImage = null,
+  lanyardImage = DEFAULT_LANYARD_IMAGE,
   lanyardWidth = 1
 }) {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
@@ -122,8 +123,9 @@ function Band({
     rot = new THREE.Vector3(),
     dir = new THREE.Vector3();
   const segmentProps = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
-  const { nodes, materials } = useGLTF('/assets/lanyard/card.glb');
-  const texture = useTexture(lanyardImage || lanyard);
+  console.log("URLs:", DEFAULT_CARD_GLB, lanyardImage, frontImage, backImage);
+  const { nodes, materials } = useGLTF(DEFAULT_CARD_GLB);
+  const texture = useTexture(lanyardImage);
   // useTexture must be called unconditionally; use a blank pixel when an image
   // isn't supplied for a given face, then skip compositing it below.
   const frontTex = useTexture(frontImage || BLANK_PIXEL);
@@ -295,3 +297,4 @@ function Band({
     </>
   );
 }
+useGLTF.preload(DEFAULT_CARD_GLB);
