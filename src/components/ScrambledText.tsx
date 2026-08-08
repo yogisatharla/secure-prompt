@@ -1,11 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
-import { SplitText } from 'gsap/SplitText';
-import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin';
-
 import './ScrambledText.css';
-
-gsap.registerPlugin(SplitText, ScrambleTextPlugin);
 
 interface ScrambledTextProps {
   radius?: number;
@@ -27,58 +21,93 @@ const ScrambledText: React.FC<ScrambledTextProps> = ({
   children
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
-  const charsRef = useRef<Element[]>([]);
+  const text = typeof children === 'string' ? children : String(children);
 
   useEffect(() => {
-    if (!rootRef.current) return;
+    const el = rootRef.current;
+    if (!el) return;
 
-    const split = SplitText.create(rootRef.current.querySelector('p'), {
-      type: 'chars',
-      charsClass: 'char'
-    });
-    charsRef.current = split.chars;
+    const p = el.querySelector('p');
+    if (!p) return;
 
-    charsRef.current.forEach(c => {
-      gsap.set(c, {
-        display: 'inline-block',
-        attr: { 'data-content': c.innerHTML }
-      });
-    });
+    // Split text into spans
+    p.innerHTML = '';
+    const spans: HTMLSpanElement[] = [];
+    for (let i = 0; i < text.length; i++) {
+      const span = document.createElement('span');
+      span.style.display = 'inline-block';
+      if (text[i] === ' ') {
+        span.innerHTML = '&nbsp;';
+      } else {
+        span.textContent = text[i];
+      }
+      span.dataset.char = text[i];
+      p.appendChild(span);
+      spans.push(span);
+    }
+
+    const state = spans.map(() => ({
+       isScrambling: false,
+       startTime: 0,
+       duration: 0
+    }));
+
+    let rafId: number;
 
     const handleMove = (e: PointerEvent) => {
-      charsRef.current.forEach((c: any) => {
-        const { left, top, width, height } = c.getBoundingClientRect();
-        const dx = e.clientX - (left + width / 2);
-        const dy = e.clientY - (top + height / 2);
+      spans.forEach((c, i) => {
+        const rect = c.getBoundingClientRect();
+        const dx = e.clientX - (rect.left + rect.width / 2);
+        const dy = e.clientY - (rect.top + rect.height / 2);
         const dist = Math.hypot(dx, dy);
 
         if (dist < radius) {
-          gsap.to(c, {
-            overwrite: true,
-            duration: duration * (1 - dist / radius),
-            scrambleText: {
-              text: c.dataset.content || '',
-              chars: scrambleChars,
-              speed
-            },
-            ease: 'none'
-          });
+           const time = performance.now();
+           const scrambleDuration = duration * 1000 * (1 - dist / radius);
+           state[i].isScrambling = true;
+           state[i].startTime = time;
+           state[i].duration = scrambleDuration;
         }
       });
     };
 
-    const el = rootRef.current;
+    const scrambleArr = scrambleChars.split('');
+
+    const animate = (time: number) => {
+      spans.forEach((c, i) => {
+         const s = state[i];
+         if (s.isScrambling) {
+             const elapsed = time - s.startTime;
+             if (elapsed > s.duration) {
+                 s.isScrambling = false;
+                 if (c.dataset.char === ' ') {
+                     c.innerHTML = '&nbsp;';
+                 } else {
+                     c.textContent = c.dataset.char || '';
+                 }
+             } else {
+                 // Adjust speed factor for visibility
+                 if (Math.random() < speed) {
+                     c.textContent = scrambleArr[Math.floor(Math.random() * scrambleArr.length)];
+                 }
+             }
+         }
+      });
+      rafId = requestAnimationFrame(animate);
+    };
+
     el.addEventListener('pointermove', handleMove);
+    rafId = requestAnimationFrame(animate);
 
     return () => {
       el.removeEventListener('pointermove', handleMove);
-      split.revert();
+      cancelAnimationFrame(rafId);
     };
-  }, [radius, duration, speed, scrambleChars]);
+  }, [text, radius, duration, scrambleChars, speed]);
 
   return (
     <div ref={rootRef} className={`text-block ${className}`} style={style}>
-      <p>{children}</p>
+      <p>{text}</p>
     </div>
   );
 };
