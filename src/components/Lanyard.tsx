@@ -1,7 +1,8 @@
 // @ts-nocheck
 /* eslint-disable react/no-unknown-property */
 'use client';
-import { useEffect, useMemo, useRef, useState, Suspense } from 'react';
+import Component, { useEffect, useMemo, useRef, useState, Suspense } from 'react';
+import React from 'react';
 import { Canvas, extend, useFrame } from '@react-three/fiber';
 import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
@@ -28,7 +29,38 @@ const BLANK_PIXEL =
 const FRONT_UV_RECT = { x: 0, y: 0, w: 0.5, h: 0.755 };
 const BACK_UV_RECT = { x: 0.5, y: 0, w: 0.5, h: 0.757 };
 
-export default function Lanyard({
+class LanyardErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error) {
+    console.warn("Lanyard 3D component caught error:", error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="lanyard-wrapper flex items-center justify-center text-brand-muted text-xs font-mono">
+          [3D Preview]
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function Lanyard(props) {
+  return (
+    <LanyardErrorBoundary>
+      <LanyardInner {...props} />
+    </LanyardErrorBoundary>
+  );
+}
+
+function LanyardInner({
   position = [0, 0, 30],
   gravity = [0, -40, 0],
   fov = 20,
@@ -123,7 +155,6 @@ function Band({
     rot = new THREE.Vector3(),
     dir = new THREE.Vector3();
   const segmentProps = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
-  console.log("URLs:", DEFAULT_CARD_GLB, lanyardImage, frontImage, backImage);
   const { nodes, materials } = useGLTF(DEFAULT_CARD_GLB);
   const texture = useTexture(lanyardImage || BLANK_PIXEL);
   // useTexture must be called unconditionally; use a blank pixel when an image
@@ -135,26 +166,29 @@ function Band({
   // half, back = right half). Each image is drawn aspect-preserving (no stretch).
   const cardMap = useMemo(() => {
     const baseMap = materials?.base?.map;
-    if (!frontImage && !backImage) return baseMap;
+    if (!frontImage && !backImage) return baseMap || null;
 
-    if (!baseMap || !baseMap.image) return baseMap || null;
-
-    const baseImg = baseMap.image;
-    const W = baseImg.width || 1024;
-    const H = baseImg.height || 1024;
+    const W = baseMap?.image?.width || 1024;
+    const H = baseMap?.image?.height || 1024;
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return baseMap;
-    // Keep the original baked atlas for the card edges and any untouched face.
-    try {
-      ctx.drawImage(baseImg, 0, 0, W, H);
-    } catch (e) {
-      console.warn("Failed to draw base image", e);
+    if (!ctx) return baseMap || null;
+
+    ctx.fillStyle = '#1B2338';
+    ctx.fillRect(0, 0, W, H);
+
+    if (baseMap && baseMap.image) {
+      try {
+        ctx.drawImage(baseMap.image, 0, 0, W, H);
+      } catch (e) {
+        console.warn("Failed to draw base image", e);
+      }
     }
 
     const drawFitted = (img, rect) => {
+      if (!img || !img.width || !img.height) return;
       const rx = rect.x * W;
       const ry = rect.y * H;
       const rw = rect.w * W;
@@ -173,16 +207,16 @@ function Band({
       ctx.restore();
     };
 
-    if (frontImage && frontTex.image) drawFitted(frontTex.image, FRONT_UV_RECT);
-    if (backImage && backTex.image) drawFitted(backTex.image, BACK_UV_RECT);
+    if (frontImage && frontTex && frontTex.image) drawFitted(frontTex.image, FRONT_UV_RECT);
+    if (backImage && backTex && backTex.image) drawFitted(backTex.image, BACK_UV_RECT);
 
     const composite = new THREE.CanvasTexture(canvas);
     composite.colorSpace = THREE.SRGBColorSpace;
-    composite.flipY = baseMap.flipY;
+    composite.flipY = baseMap ? baseMap.flipY : false;
     composite.anisotropy = 16;
     composite.needsUpdate = true;
     return composite;
-  }, [frontImage, backImage, imageFit, frontTex, backTex, materials.base.map]);
+  }, [frontImage, backImage, imageFit, frontTex, backTex, materials?.base?.map]);
   const [curve] = useState(
     () =>
       new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
@@ -267,18 +301,24 @@ function Band({
               drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())))
             )}
           >
-            <mesh geometry={nodes.card.geometry}>
-              <meshPhysicalMaterial
-                map={cardMap}
-                map-anisotropy={16}
-                clearcoat={isMobile ? 0 : 1}
-                clearcoatRoughness={0.15}
-                roughness={0.9}
-                metalness={0.8}
-              />
-            </mesh>
-            <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
-            <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
+            {nodes?.card?.geometry && (
+              <mesh geometry={nodes.card.geometry}>
+                <meshPhysicalMaterial
+                  map={cardMap}
+                  map-anisotropy={16}
+                  clearcoat={isMobile ? 0 : 1}
+                  clearcoatRoughness={0.15}
+                  roughness={0.9}
+                  metalness={0.8}
+                />
+              </mesh>
+            )}
+            {nodes?.clip?.geometry && (
+              <mesh geometry={nodes.clip.geometry} material={materials?.metal} material-roughness={0.3} />
+            )}
+            {nodes?.clamp?.geometry && (
+              <mesh geometry={nodes.clamp.geometry} material={materials?.metal} />
+            )}
           </group>
         </RigidBody>
       </group>
@@ -298,3 +338,4 @@ function Band({
   );
 }
 useGLTF.preload(DEFAULT_CARD_GLB);
+
