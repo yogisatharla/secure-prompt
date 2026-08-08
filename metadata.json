@@ -1,0 +1,8 @@
+{
+  "name": "Secure Prompt",
+  "description": "AI prompt privacy firewall and entity sanitizer that detects, redacts, and eliminates sensitive data leakages before sending prompts to LLMs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
