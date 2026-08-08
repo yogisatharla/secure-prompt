@@ -8,8 +8,10 @@ import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphe
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 
 // Use public paths for assets
-const DEFAULT_LANYARD_IMAGE = "/assets/lanyard/lanyard.png";
-const DEFAULT_CARD_GLB = "/assets/lanyard/card.glb";
+import lanyardDataURI from "../assets/lanyard/lanyardData";
+const DEFAULT_LANYARD_IMAGE = lanyardDataURI;
+import cardGLBDataURI from "../assets/lanyard/cardGLBData";
+const DEFAULT_CARD_GLB = cardGLBDataURI;
 
 import * as THREE from 'three';
 import './Lanyard.css';
@@ -125,7 +127,7 @@ function Band({
   const segmentProps = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
   console.log("URLs:", DEFAULT_CARD_GLB, lanyardImage, frontImage, backImage);
   const { nodes, materials } = useGLTF(DEFAULT_CARD_GLB);
-  const texture = useTexture(lanyardImage);
+  const texture = useTexture(lanyardImage || BLANK_PIXEL);
   // useTexture must be called unconditionally; use a blank pixel when an image
   // isn't supplied for a given face, then skip compositing it below.
   const frontTex = useTexture(frontImage || BLANK_PIXEL);
