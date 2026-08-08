@@ -133,19 +133,25 @@ function Band({
   // Composite the front/back images into the card's texture atlas (front = left
   // half, back = right half). Each image is drawn aspect-preserving (no stretch).
   const cardMap = useMemo(() => {
-    const baseMap = materials.base.map;
+    const baseMap = materials?.base?.map;
     if (!frontImage && !backImage) return baseMap;
 
+    if (!baseMap || !baseMap.image) return baseMap || null;
+
     const baseImg = baseMap.image;
-    const W = baseImg.width;
-    const H = baseImg.height;
+    const W = baseImg.width || 1024;
+    const H = baseImg.height || 1024;
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d');
     if (!ctx) return baseMap;
     // Keep the original baked atlas for the card edges and any untouched face.
-    ctx.drawImage(baseImg, 0, 0, W, H);
+    try {
+      ctx.drawImage(baseImg, 0, 0, W, H);
+    } catch (e) {
+      console.warn("Failed to draw base image", e);
+    }
 
     const drawFitted = (img, rect) => {
       const rx = rect.x * W;
@@ -199,14 +205,14 @@ function Band({
   }, [hovered, dragged]);
 
   useFrame((state, delta) => {
-    if (dragged) {
+    if (dragged && card.current) {
       vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
       dir.copy(vec).sub(state.camera.position).normalize();
       vec.add(dir.multiplyScalar(state.camera.position.length()));
-      [card, j1, j2, j3, fixed].forEach(ref => ref.current?.wakeUp());
-      card.current?.setNextKinematicTranslation({ x: vec.x - dragged.x, y: vec.y - dragged.y, z: vec.z - dragged.z });
+      [card, j1, j2, j3, fixed].forEach(ref => ref.current?.wakeUp?.());
+      card.current?.setNextKinematicTranslation?.({ x: vec.x - dragged.x, y: vec.y - dragged.y, z: vec.z - dragged.z });
     }
-    if (fixed.current) {
+    if (fixed.current && j1.current && j2.current && j3.current && card.current && band.current) {
       [j1, j2].forEach(ref => {
         if (!ref.current.lerped) ref.current.lerped = new THREE.Vector3().copy(ref.current.translation());
         const clampedDistance = Math.max(0.1, Math.min(1, ref.current.lerped.distanceTo(ref.current.translation())));
@@ -220,9 +226,14 @@ function Band({
       curve.points[2].copy(j1.current.lerped);
       curve.points[3].copy(fixed.current.translation());
       band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
-      ang.copy(card.current.angvel());
-      rot.copy(card.current.rotation());
-      card.current.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z });
+      
+      const angvel = card.current.angvel();
+      const rotation = card.current.rotation();
+      if (angvel && rotation) {
+        ang.copy(angvel);
+        rot.copy(rotation);
+        card.current.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z });
+      }
     }
   });
 
