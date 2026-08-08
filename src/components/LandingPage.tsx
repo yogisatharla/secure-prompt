@@ -11,7 +11,7 @@ interface LandingPageProps {
   onStart: () => void;
 }
 
-const SHIELD_SVG = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNjAwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzFCMjMzOCIgLz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJub25lIiBzdHJva2U9IiMyQjM1NTAiIHN0cm9rZS13aWR0aD0iMjAiIC8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTUyLCAyMDApIHNjYWxlKDQpIj48cGF0aCBkPSJNMTIgMjJzOC00IDgtMTBWNWwtOC0zLTggM3Y3YzAgNiA4IDEwIDggMTB6IiBmaWxsPSJub25lIiBzdHJva2U9IiNEOUE0NDEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9nPjx0ZXh0IHg9IjIwMCIgeT0iNDUwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI0VDRUVGMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0VDVVJFIFBST01QVDwvdGV4dD48dGV4dCB4PSIyMDAiIHk9IjUwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM4QjkzQTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVOVEVSUFJJU0UgU0VDVVJJVFk8L3RleHQ+PC9zdmc+`;
+const SHIELD_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="200" height="200" fill="none" stroke="%23D9A441" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
 
 const bentoCards = [
   {

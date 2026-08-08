@@ -26,8 +26,8 @@ const BLANK_PIXEL =
 // atlas and the back face to the RIGHT half (measured from card.glb). Each
 // custom image is composited into its own half so the two faces render
 // independently, aspect-preserving (no stretching).
-const FRONT_UV_RECT = { x: 0, y: 0.243, w: 0.5, h: 0.757 };
-const BACK_UV_RECT = { x: 0.5, y: 0.243, w: 0.5, h: 0.757 };
+const FRONT_UV_RECT = { x: 0, y: 0, w: 0.5, h: 0.757 };
+const BACK_UV_RECT = { x: 0.5, y: 0, w: 0.5, h: 0.757 };
 
 class LanyardErrorBoundary extends React.Component {
   constructor(props) {
@@ -182,6 +182,106 @@ function LanyardInner({
     </div>
   );
 }
+function createDefaultCardTexture() {
+  if (typeof document === 'undefined') return null;
+  const W = 1024;
+  const H = 1024;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.fillStyle = '#121826';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw Front Face (FRONT_UV_RECT = { x: 0, y: 0, w: 0.5, h: 0.757 })
+  const fx = FRONT_UV_RECT.x * W;
+  const fy = FRONT_UV_RECT.y * H;
+  const fw = FRONT_UV_RECT.w * W;
+  const fh = FRONT_UV_RECT.h * H;
+
+  // Body
+  ctx.fillStyle = '#1B2338';
+  ctx.fillRect(fx, fy, fw, fh);
+  ctx.strokeStyle = '#2B3550';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(fx + 5, fy + 5, fw - 10, fh - 10);
+
+  // Gold Chip
+  ctx.fillStyle = '#D9A441';
+  ctx.fillRect(fx + 40, fy + 50, 60, 45);
+  ctx.strokeStyle = '#B38128';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(fx + 40, fy + 50, 60, 45);
+
+  // SECURE PASS
+  ctx.fillStyle = '#D9A441';
+  ctx.font = 'bold 18px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('SECURE PASS', fx + fw - 40, fy + 78);
+
+  // Center Shield Box
+  ctx.fillStyle = '#101420';
+  ctx.fillRect(fx + 40, fy + 120, fw - 80, fh - 260);
+  ctx.strokeStyle = '#2B3550';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(fx + 40, fy + 120, fw - 80, fh - 260);
+
+  // Shield Icon
+  ctx.fillStyle = '#D9A441';
+  ctx.font = '70px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🛡️', fx + fw / 2, fy + fh / 2 - 30);
+
+  // Footer text
+  ctx.fillStyle = '#ECEEF3';
+  ctx.font = 'bold 32px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('SECURE PROMPT', fx + fw / 2, fy + fh - 80);
+
+  ctx.fillStyle = '#8B93A9';
+  ctx.font = '18px sans-serif';
+  ctx.fillText('ENTERPRISE SECURITY', fx + fw / 2, fy + fh - 45);
+
+  // Draw Back Face
+  const bx = BACK_UV_RECT.x * W;
+  const by = BACK_UV_RECT.y * H;
+  const bw = BACK_UV_RECT.w * W;
+  const bh = BACK_UV_RECT.h * H;
+
+  ctx.fillStyle = '#1B2338';
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.strokeStyle = '#2B3550';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(bx + 5, by + 5, bw - 10, bh - 10);
+
+  ctx.fillStyle = '#0A0D14';
+  ctx.fillRect(bx, by + 60, bw, 100);
+
+  ctx.fillStyle = '#2B3550';
+  ctx.fillRect(bx + 40, by + 220, bw - 80, 120);
+  ctx.fillStyle = '#ECEEF3';
+  for (let i = 0; i < 30; i++) {
+    if (i % 3 !== 0) {
+      ctx.fillRect(bx + 60 + i * 13, by + 240, (i % 2 === 0 ? 8 : 4), 80);
+    }
+  }
+
+  ctx.fillStyle = '#8B93A9';
+  ctx.font = 'bold 22px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('AUTHORIZED ACCESS ONLY', bx + bw / 2, by + bh - 60);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.flipY = false;
+  texture.anisotropy = 16;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 function Band({
   maxSpeed = 50,
   minSpeed = 0,
@@ -205,7 +305,7 @@ function Band({
   const segmentProps = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
   const { nodes, materials } = useGLTF(DEFAULT_CARD_GLB);
   const texture = useTexture(lanyardImage || BLANK_PIXEL);
-  const [cardMap, setCardMap] = useState(null);
+  const [cardMap, setCardMap] = useState(() => createDefaultCardTexture());
 
   useEffect(() => {
     let isCancelled = false;
@@ -255,35 +355,36 @@ function Band({
           ctx.textAlign = 'right';
           ctx.fillText('SECURE PASS', rx + rw - 40, ry + 78);
 
+          // Center Shield Box Frame
+          ctx.fillStyle = '#101420';
+          ctx.fillRect(rx + 40, ry + 120, rw - 80, rh - 260);
+          ctx.strokeStyle = '#2B3550';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(rx + 40, ry + 120, rw - 80, rh - 260);
+
           // Center image or shield icon
           if (img && img.width && img.height) {
+            const boxW = rw - 80;
+            const boxH = rh - 260;
             const pick = imageFit === 'contain' ? Math.min : Math.max;
-            const scale = pick((rw - 80) / img.width, (rh - 240) / img.height);
+            const scale = pick((boxW - 40) / img.width, (boxH - 40) / img.height);
             const dw = img.width * scale;
             const dh = img.height * scale;
-            const dx = rx + (rw - dw) / 2;
-            const dy = ry + 120 + (rh - 280 - dh) / 2;
+            const dx = rx + 40 + (boxW - dw) / 2;
+            const dy = ry + 120 + (boxH - dh) / 2;
             ctx.save();
             ctx.beginPath();
-            ctx.rect(rx + 40, ry + 120, rw - 80, rh - 280);
+            ctx.rect(rx + 40, ry + 120, boxW, boxH);
             ctx.clip();
             ctx.drawImage(img, dx, dy, dw, dh);
             ctx.restore();
           } else {
             // Draw default shield icon in center
-            ctx.fillStyle = '#121826';
-            ctx.beginPath();
-            ctx.arc(rx + rw / 2, ry + rh / 2 - 20, 70, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#D9A441';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-
             ctx.fillStyle = '#D9A441';
             ctx.font = '70px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('🛡️', rx + rw / 2, ry + rh / 2 - 20);
+            ctx.fillText('🛡️', rx + rw / 2, ry + 120 + (rh - 260) / 2);
           }
 
           // Footer
@@ -345,7 +446,7 @@ function Band({
 
       const composite = new THREE.CanvasTexture(canvas);
       composite.colorSpace = THREE.SRGBColorSpace;
-      composite.flipY = baseMap ? baseMap.flipY : false;
+      composite.flipY = false;
       composite.anisotropy = 16;
       composite.needsUpdate = true;
       return composite;
@@ -474,8 +575,8 @@ function Band({
                   map={cardMap || materials?.base?.map || undefined}
                   clearcoat={isMobile ? 0 : 1}
                   clearcoatRoughness={0.15}
-                  roughness={0.9}
-                  metalness={0.8}
+                  roughness={0.25}
+                  metalness={0.1}
                 />
               </mesh>
             )}
