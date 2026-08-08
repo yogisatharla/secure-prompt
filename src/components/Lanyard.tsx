@@ -26,8 +26,8 @@ const BLANK_PIXEL =
 // atlas and the back face to the RIGHT half (measured from card.glb). Each
 // custom image is composited into its own half so the two faces render
 // independently, aspect-preserving (no stretching).
-const FRONT_UV_RECT = { x: 0, y: 0, w: 0.5, h: 0.755 };
-const BACK_UV_RECT = { x: 0.5, y: 0, w: 0.5, h: 0.757 };
+const FRONT_UV_RECT = { x: 0, y: 0.243, w: 0.5, h: 0.757 };
+const BACK_UV_RECT = { x: 0.5, y: 0.243, w: 0.5, h: 0.757 };
 
 class LanyardErrorBoundary extends React.Component {
   constructor(props) {
@@ -42,19 +42,67 @@ class LanyardErrorBoundary extends React.Component {
   }
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="lanyard-wrapper flex items-center justify-center text-brand-muted text-xs font-mono">
-          [3D Preview]
-        </div>
-      );
+      return <FallbackPassCard frontImage={this.props.frontImage} />;
     }
     return this.props.children;
   }
 }
 
+function FallbackPassCard({ frontImage }) {
+  const [rotate, setRotate] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    setRotate({ x: -y / 12, y: x / 12 });
+  };
+
+  const handleMouseLeave = () => setRotate({ x: 0, y: 0 });
+
+  return (
+    <div 
+      className="lanyard-wrapper flex flex-col items-center justify-center relative overflow-hidden py-4"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="w-1.5 h-20 bg-gradient-to-b from-[#2B3550] via-[#D9A441] to-[#2B3550] rounded-full shadow-md animate-pulse mb-[-10px] z-0" />
+      <div className="w-8 h-4 bg-gradient-to-r from-gray-400 via-gray-200 to-gray-500 rounded-sm shadow-md border border-white/20 z-10 flex items-center justify-center mb-[-4px]">
+        <div className="w-3 h-1 bg-gray-800 rounded-full" />
+      </div>
+      <div 
+        className="w-52 h-80 rounded-2xl bg-[#1B2338] border border-[#2B3550] p-5 flex flex-col items-center justify-between text-center shadow-2xl relative overflow-hidden transition-transform duration-200 ease-out z-20 cursor-grab"
+        style={{
+          transform: `perspective(1000px) rotateX(${rotate.x}deg) rotateY(${rotate.y}deg)`,
+          boxShadow: '0 20px 40px rgba(0,0,0,0.6), inset 0 0 20px rgba(217,164,65,0.05)'
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
+        <div className="w-full flex justify-between items-center z-10">
+          <div className="w-8 h-6 bg-gradient-to-br from-amber-200 via-amber-400 to-yellow-600 rounded-md border border-amber-300/40 opacity-80" />
+          <span className="text-[9px] font-mono tracking-widest text-[#D9A441] font-bold">SECURE PASS</span>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center my-3 z-10">
+          {frontImage ? (
+            <img src={frontImage} alt="Security Pass" className="w-28 h-28 object-contain drop-shadow-md" />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-brand-base border border-[#2B3550] flex items-center justify-center">
+              <span className="text-2xl text-[#D9A441]">🛡️</span>
+            </div>
+          )}
+        </div>
+        <div className="w-full border-t border-[#2B3550] pt-3 z-10">
+          <div className="text-xs font-mono font-bold text-[#ECEEF3] tracking-wider uppercase">SECURE PROMPT</div>
+          <div className="text-[10px] font-sans text-[#8B93A9] tracking-tight">ENTERPRISE SECURITY</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Lanyard(props) {
   return (
-    <LanyardErrorBoundary>
+    <LanyardErrorBoundary frontImage={props.frontImage}>
       <LanyardInner {...props} />
     </LanyardErrorBoundary>
   );
@@ -157,66 +205,185 @@ function Band({
   const segmentProps = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
   const { nodes, materials } = useGLTF(DEFAULT_CARD_GLB);
   const texture = useTexture(lanyardImage || BLANK_PIXEL);
-  // useTexture must be called unconditionally; use a blank pixel when an image
-  // isn't supplied for a given face, then skip compositing it below.
-  const frontTex = useTexture(frontImage || BLANK_PIXEL);
-  const backTex = useTexture(backImage || BLANK_PIXEL);
+  const [cardMap, setCardMap] = useState(null);
 
-  // Composite the front/back images into the card's texture atlas (front = left
-  // half, back = right half). Each image is drawn aspect-preserving (no stretch).
-  const cardMap = useMemo(() => {
+  useEffect(() => {
+    let isCancelled = false;
     const baseMap = materials?.base?.map;
-    if (!frontImage && !backImage) return baseMap || null;
-
+    
     const W = baseMap?.image?.width || 1024;
     const H = baseMap?.image?.height || 1024;
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return baseMap || null;
 
-    ctx.fillStyle = '#1B2338';
-    ctx.fillRect(0, 0, W, H);
+    const generateTexture = (fImg = null, bImg = null) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
 
-    if (baseMap && baseMap.image) {
-      try {
-        ctx.drawImage(baseMap.image, 0, 0, W, H);
-      } catch (e) {
-        console.warn("Failed to draw base image", e);
-      }
-    }
+      // Fill canvas background
+      ctx.fillStyle = '#121826';
+      ctx.fillRect(0, 0, W, H);
 
-    const drawFitted = (img, rect) => {
-      if (!img || !img.width || !img.height) return;
-      const rx = rect.x * W;
-      const ry = rect.y * H;
-      const rw = rect.w * W;
-      const rh = rect.h * H;
-      const pick = imageFit === 'contain' ? Math.min : Math.max;
-      const scale = pick(rw / img.width, rh / img.height);
-      const dw = img.width * scale;
-      const dh = img.height * scale;
-      const dx = rx + (rw - dw) / 2;
-      const dy = ry + (rh - dh) / 2;
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(rx, ry, rw, rh);
-      ctx.clip();
-      ctx.drawImage(img, dx, dy, dw, dh);
-      ctx.restore();
+      // Helper to draw card face
+      const drawFace = (rect, isFront, img) => {
+        const rx = rect.x * W;
+        const ry = rect.y * H;
+        const rw = rect.w * W;
+        const rh = rect.h * H;
+
+        // Card body background
+        ctx.fillStyle = '#1B2338';
+        ctx.fillRect(rx, ry, rw, rh);
+
+        // Border
+        ctx.strokeStyle = '#2B3550';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(rx + 4, ry + 4, rw - 8, rh - 8);
+
+        if (isFront) {
+          // Gold Chip Emblem
+          ctx.fillStyle = '#D9A441';
+          ctx.fillRect(rx + 40, ry + 50, 60, 45);
+          ctx.strokeStyle = '#B38128';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(rx + 40, ry + 50, 60, 45);
+
+          // Header Label
+          ctx.fillStyle = '#D9A441';
+          ctx.font = 'bold 18px monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText('SECURE PASS', rx + rw - 40, ry + 78);
+
+          // Center image or shield icon
+          if (img && img.width && img.height) {
+            const pick = imageFit === 'contain' ? Math.min : Math.max;
+            const scale = pick((rw - 80) / img.width, (rh - 240) / img.height);
+            const dw = img.width * scale;
+            const dh = img.height * scale;
+            const dx = rx + (rw - dw) / 2;
+            const dy = ry + 120 + (rh - 280 - dh) / 2;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(rx + 40, ry + 120, rw - 80, rh - 280);
+            ctx.clip();
+            ctx.drawImage(img, dx, dy, dw, dh);
+            ctx.restore();
+          } else {
+            // Draw default shield icon in center
+            ctx.fillStyle = '#121826';
+            ctx.beginPath();
+            ctx.arc(rx + rw / 2, ry + rh / 2 - 20, 70, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#D9A441';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.fillStyle = '#D9A441';
+            ctx.font = '70px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🛡️', rx + rw / 2, ry + rh / 2 - 20);
+          }
+
+          // Footer
+          ctx.strokeStyle = '#2B3550';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(rx + 30, ry + rh - 130);
+          ctx.lineTo(rx + rw - 30, ry + rh - 130);
+          ctx.stroke();
+
+          ctx.fillStyle = '#ECEEF3';
+          ctx.font = 'bold 32px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('SECURE PROMPT', rx + rw / 2, ry + rh - 80);
+
+          ctx.fillStyle = '#8B93A9';
+          ctx.font = '18px sans-serif';
+          ctx.fillText('ENTERPRISE SECURITY', rx + rw / 2, ry + rh - 45);
+        } else {
+          // Back face
+          // Mag stripe
+          ctx.fillStyle = '#0A0D14';
+          ctx.fillRect(rx, ry + 60, rw, 100);
+
+          if (img && img.width && img.height) {
+            const pick = imageFit === 'contain' ? Math.min : Math.max;
+            const scale = pick((rw - 80) / img.width, (rh - 240) / img.height);
+            const dw = img.width * scale;
+            const dh = img.height * scale;
+            const dx = rx + (rw - dw) / 2;
+            const dy = ry + 180 + (rh - 280 - dh) / 2;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(rx + 40, ry + 180, rw - 80, rh - 280);
+            ctx.clip();
+            ctx.drawImage(img, dx, dy, dw, dh);
+            ctx.restore();
+          } else {
+            // Barcode mockup
+            ctx.fillStyle = '#2B3550';
+            ctx.fillRect(rx + 40, ry + 220, rw - 80, 120);
+            ctx.fillStyle = '#ECEEF3';
+            for (let i = 0; i < 30; i++) {
+              if (i % 3 !== 0) {
+                ctx.fillRect(rx + 60 + i * 13, ry + 240, (i % 2 === 0 ? 8 : 4), 80);
+              }
+            }
+          }
+
+          ctx.fillStyle = '#8B93A9';
+          ctx.font = 'bold 22px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('AUTHORIZED ACCESS ONLY', rx + rw / 2, ry + rh - 60);
+        }
+      };
+
+      drawFace(FRONT_UV_RECT, true, fImg);
+      drawFace(BACK_UV_RECT, false, bImg);
+
+      const composite = new THREE.CanvasTexture(canvas);
+      composite.colorSpace = THREE.SRGBColorSpace;
+      composite.flipY = baseMap ? baseMap.flipY : false;
+      composite.anisotropy = 16;
+      composite.needsUpdate = true;
+      return composite;
     };
 
-    if (frontImage && frontTex && frontTex.image) drawFitted(frontTex.image, FRONT_UV_RECT);
-    if (backImage && backTex && backTex.image) drawFitted(backTex.image, BACK_UV_RECT);
+    // Synchronously set default texture immediately so it is never blank!
+    const initialTexture = generateTexture(null, null);
+    if (initialTexture) {
+      setCardMap(initialTexture);
+    }
 
-    const composite = new THREE.CanvasTexture(canvas);
-    composite.colorSpace = THREE.SRGBColorSpace;
-    composite.flipY = baseMap ? baseMap.flipY : false;
-    composite.anisotropy = 16;
-    composite.needsUpdate = true;
-    return composite;
-  }, [frontImage, backImage, imageFit, frontTex, backTex, materials?.base?.map]);
+    if (!frontImage && !backImage) return;
+
+    const loadImage = (src) => {
+      if (!src || src === BLANK_PIXEL) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const img = new Image();
+        if (typeof src === 'string' && src.startsWith('http')) {
+          img.crossOrigin = 'anonymous';
+        }
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    };
+
+    Promise.all([loadImage(frontImage), loadImage(backImage)]).then(([fImg, bImg]) => {
+      if (isCancelled) return;
+      const updatedTexture = generateTexture(fImg, bImg);
+      if (updatedTexture) {
+        setCardMap(updatedTexture);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [frontImage, backImage, imageFit, materials?.base?.map]);
   const [curve] = useState(
     () =>
       new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
@@ -304,8 +471,7 @@ function Band({
             {nodes?.card?.geometry && (
               <mesh geometry={nodes.card.geometry}>
                 <meshPhysicalMaterial
-                  map={cardMap}
-                  map-anisotropy={16}
+                  map={cardMap || materials?.base?.map || undefined}
                   clearcoat={isMobile ? 0 : 1}
                   clearcoatRoughness={0.15}
                   roughness={0.9}
@@ -314,7 +480,7 @@ function Band({
               </mesh>
             )}
             {nodes?.clip?.geometry && (
-              <mesh geometry={nodes.clip.geometry} material={materials?.metal} material-roughness={0.3} />
+              <mesh geometry={nodes.clip.geometry} material={materials?.metal} />
             )}
             {nodes?.clamp?.geometry && (
               <mesh geometry={nodes.clamp.geometry} material={materials?.metal} />

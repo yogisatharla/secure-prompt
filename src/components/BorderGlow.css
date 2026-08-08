@@ -11,7 +11,7 @@
   border-radius: var(--border-radius);
   isolation: isolate;
   transform: translate3d(0, 0, 0.01px);
-  display: flex; /* Changed from grid to flex to inherit full height correctly */
+  display: flex;
   flex-direction: column;
   border: 1px solid rgb(255 255 255 / 5%);
   background: var(--card-bg, #120F17);
@@ -127,10 +127,11 @@
 }
 
 .border-glow-inner {
-  display: flex;
-  flex-direction: column;
   position: relative;
   z-index: 1;
+  border-radius: inherit;
   flex: 1;
   height: 100%;
 }
+
+
