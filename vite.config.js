@@ -14,7 +14,11 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks: function (id) {
-                    if (id.includes('node_modules/three') || id.includes('node_modules/@react-three')) {
+                    if (id.includes('node_modules/three') ||
+                        id.includes('node_modules/@react-three') ||
+                        id.includes('node_modules/postprocessing') ||
+                        id.includes('node_modules/meshline') ||
+                        id.includes('node_modules/ogl')) {
                         return 'three-vendor';
                     }
                     if (id.includes('node_modules/lucide-react')) {

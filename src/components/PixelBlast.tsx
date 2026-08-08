@@ -387,7 +387,6 @@ const PixelBlast = ({
     const quadGeom = new THREE.PlaneGeometry(2, 2);
     const quad = new THREE.Mesh(quadGeom, material);
     scene.add(quad);
-    const clock = new THREE.Clock();
     
     const setSize = () => {
       const w = container.clientWidth || 1;
@@ -488,13 +487,16 @@ const PixelBlast = ({
       passive: true
     });
     
-    let raf = 0;
+    let rafId = 0;
+    const startTime = performance.now();
     const animate = () => {
       if (autoPauseOffscreen && !visibilityRef.current.visible) {
-        raf = requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
+        if (threeRef.current) threeRef.current.raf = rafId;
         return;
       }
-      uniforms.uTime.value = timeOffset + clock.getElapsedTime() * speedRef.current;
+      const elapsedTime = (performance.now() - startTime) / 1000;
+      uniforms.uTime.value = timeOffset + elapsedTime * speedRef.current;
       if (liquidEffect) liquidEffect.uniforms.get('uTime').value = uniforms.uTime.value;
       if (composer) {
         if (touch) touch.update();
@@ -508,21 +510,21 @@ const PixelBlast = ({
         });
         composer.render();
       } else renderer.render(scene, camera);
-      raf = requestAnimationFrame(animate);
+      rafId = requestAnimationFrame(animate);
+      if (threeRef.current) threeRef.current.raf = rafId;
     };
     
-    raf = requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
     
     threeRef.current = {
       renderer,
       scene,
       camera,
       material,
-      clock,
       clickIx: 0,
       uniforms,
       resizeObserver: ro,
-      raf,
+      raf: rafId,
       quad,
       timeOffset,
       composer,
@@ -539,7 +541,6 @@ const PixelBlast = ({
       t.material.dispose();
       t.composer?.dispose();
       t.renderer.dispose();
-      t.renderer.forceContextLoss();
       if (t.renderer.domElement.parentElement === container) {
         container.removeChild(t.renderer.domElement);
       }
