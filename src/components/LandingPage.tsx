@@ -11,7 +11,168 @@ interface LandingPageProps {
   onStart: () => void;
 }
 
-const SHIELD_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="200" height="200" fill="none" stroke="%23D9A441" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
+function createCardFrontPng(): string {
+  if (typeof document === 'undefined') return '';
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 1536;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  ctx.save();
+  ctx.translate(0, 0);
+  ctx.scale(1, 1);
+
+  // Background
+  ctx.fillStyle = '#06090e'; 
+  ctx.fillRect(0, 0, 1024, 1536);
+
+  // Outer Border Frame
+  ctx.strokeStyle = '#8A7338';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(40, 40, 944, 1456);
+
+  // Inner frame
+  ctx.strokeStyle = '#1a2235';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(56, 56, 912, 1424);
+
+  // Top header area
+  ctx.fillStyle = '#0d131f';
+  ctx.fillRect(56, 56, 912, 200);
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '800 64px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SECUREPROMPT', 512, 120);
+
+  ctx.fillStyle = '#64748b'; 
+  ctx.font = '600 28px sans-serif';
+  ctx.fillText('AI PROMPT SECURITY', 512, 180);
+
+  // Divider
+  ctx.strokeStyle = '#1a2235';
+  ctx.beginPath();
+  ctx.moveTo(56, 256);
+  ctx.lineTo(968, 256);
+  ctx.stroke();
+
+  // Abstract Shield / Lock Symbol
+  ctx.save();
+  ctx.translate(512, 650);
+  ctx.strokeStyle = '#8A7338'; 
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  ctx.beginPath();
+  ctx.moveTo(0, -120);
+  ctx.lineTo(100, -70);
+  ctx.lineTo(100, 40);
+  ctx.quadraticCurveTo(100, 120, 0, 160);
+  ctx.quadraticCurveTo(-100, 120, -100, 40);
+  ctx.lineTo(-100, -70);
+  ctx.closePath();
+  ctx.stroke();
+
+  // Inner lock dot
+  ctx.fillStyle = '#8A7338';
+  ctx.beginPath();
+  ctx.arc(0, 0, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Status Indicator
+  ctx.fillStyle = 'rgba(16, 185, 129, 0.1)'; 
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(362, 950, 300, 60, 30);
+    ctx.fill();
+    ctx.strokeStyle = '#10B981';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  } else {
+    ctx.fillRect(362, 950, 300, 60);
+  }
+
+  ctx.fillStyle = '#10B981';
+  ctx.beginPath();
+  ctx.arc(400, 980, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#34D399';
+  ctx.font = '700 24px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('STATUS: PROTECTED', 425, 982);
+
+  // DLP Shield Text
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '500 32px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('DLP SHIELD', 512, 1100);
+
+  // Bottom Area 
+  ctx.fillStyle = '#1a2235';
+  for(let i=0; i<15; i++) {
+    const width = Math.random() * 40 + 10;
+    ctx.fillRect(150 + i * 45, 1250, width, 80);
+  }
+
+  ctx.fillStyle = '#475569';
+  ctx.font = '400 20px monospace';
+  ctx.fillText('ID: SP-SEC-00X // ZERO-TRUST', 512, 1400);
+
+  ctx.restore();
+  return canvas.toDataURL('image/png');
+}
+
+function createCardBackPng(): string {
+  if (typeof document === 'undefined') return '';
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 1536;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  ctx.save();
+  ctx.translate(1024, 0);
+  ctx.scale(-1, 1);
+
+  // Background
+  ctx.fillStyle = '#040609';
+  ctx.fillRect(0, 0, 1024, 1536);
+
+  // Border
+  ctx.strokeStyle = '#8A7338';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(40, 40, 944, 1456);
+
+  // Mag stripe (futuristic)
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(40, 150, 944, 200);
+
+  // Text
+  ctx.fillStyle = '#475569';
+  ctx.font = '400 24px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('SECUREPROMPT ENTERPRISE', 512, 500);
+  ctx.fillText('This credential validates real-time AI prompt sanitization.', 512, 580);
+  ctx.fillText('Zero data retention policy is actively enforced.', 512, 640);
+
+  // Hex grid or similar subtle pattern
+  ctx.strokeStyle = '#1a2235';
+  ctx.lineWidth = 1;
+  for(let y = 800; y < 1400; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(100, y);
+    ctx.lineTo(924, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+  return canvas.toDataURL('image/png');
+}
 
 const bentoCards = [
   {
@@ -41,116 +202,69 @@ const bentoCards = [
 ];
 
 export const LandingPage = ({ onStart }: LandingPageProps) => {
-  const [showSplash, setShowSplash] = useState(true);
+  const [frontImage, setFrontImage] = useState<string | null>(null);
+  const [backImage, setBackImage] = useState<string | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 4500); // Increased time to let the lanyard animation play
-    return () => clearTimeout(timer);
+    setFrontImage(createCardFrontPng());
+    setBackImage(createCardBackPng());
   }, []);
 
   return (
-    <div className="min-h-screen bg-brand-base flex flex-col items-center justify-center font-sans overflow-x-hidden py-12 relative">
-      {/* ALWAYS render Splash to avoid WebGL/Rapier unmount crash, just fade it out */}
-      <motion.div
-        initial={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-        animate={{ 
-          opacity: showSplash ? 1 : 0, 
-          scale: showSplash ? 1 : 0.95,
-          filter: showSplash ? 'blur(0px)' : 'blur(10px)',
-          pointerEvents: showSplash ? 'auto' : 'none'
-        }}
-        transition={{ duration: 0.8, ease: 'easeInOut' }}
-        className="absolute inset-0 flex flex-col items-center justify-center w-full h-full z-10"
-        style={{ zIndex: showSplash ? 50 : -1 }}
-      >
-        <div className="absolute inset-0 z-0">
-            <LightRays
-              raysOrigin="top-center"
-              raysColor="#D9A441"
-              raysSpeed={1.5}
-              lightSpread={0.8}
-              rayLength={1.2}
-              followMouse={true}
-              mouseInfluence={0.1}
-              noiseAmount={0.1}
-              distortion={0.05}
-            />
-        </div>
-        <div className="absolute inset-0 z-10">
-            <Lanyard position={[0, 0, 20]} gravity={[0, -40, 0]} frontImage={SHIELD_SVG} />
-        </div>
-        
-        <div className="z-20 absolute bottom-20 flex flex-col items-center pointer-events-none">
-          <motion.h1
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, ease: 'easeOut', delay: 1 }}
-            className="text-3xl font-mono font-bold tracking-widest text-brand-text uppercase shadow-black drop-shadow-lg"
-          >
-            Secure Prompt
-          </motion.h1>
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: '100%' }}
-            transition={{ duration: 1.5, ease: 'easeInOut', delay: 1.5 }}
-            className="h-px bg-gradient-to-r from-transparent via-brand-border to-transparent mt-4 w-48"
-          />
-        </div>
-      </motion.div>
+    <div className="min-h-screen bg-brand-base flex flex-col items-center justify-start font-sans overflow-x-hidden relative">
+      {/* Background Light Rays */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <LightRays
+          raysOrigin="top-center"
+          raysColor="#D9A441"
+          raysSpeed={1.5}
+          lightSpread={0.8}
+          rayLength={1.2}
+          followMouse={true}
+          mouseInfluence={0.1}
+          noiseAmount={0.1}
+          distortion={0.05}
+        />
+      </div>
 
-      {/* Main Landing Page Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: showSplash ? 0 : 1, y: showSplash ? 20 : 0 }}
-        transition={{ duration: 0.8, ease: 'easeOut', delay: showSplash ? 0 : 0.2 }}
-        className="flex flex-col items-center max-w-5xl px-6 text-center my-auto w-full relative z-10"
-        style={{ pointerEvents: showSplash ? 'none' : 'auto' }}
-      >
-        <div className="fixed inset-0 z-0 opacity-30 pointer-events-none">
-          {!showSplash && (
-            <PixelBlast
-              variant="circle"
-              pixelSize={3}
-              color="#B497CF"
-              patternScale={3}
-              patternDensity={1.2}
-              pixelSizeJitter={0.5}
-              enableRipples
-              rippleSpeed={0.4}
-              rippleThickness={0.12}
-              rippleIntensityScale={1.5}
-              liquid
-              liquidStrength={0.12}
-              liquidRadius={1.2}
-              liquidWobbleSpeed={5}
-              speed={0.6}
-              edgeFade={0.25}
-              transparent
-            />
-          )}
-        </div>
-        
-        <div className="w-16 h-16 mb-6 rounded-2xl bg-brand-panel border border-brand-border flex items-center justify-center shadow-lg shadow-black/20 relative z-10">
-          <Shield className="w-8 h-8 text-risk-pii" />
-        </div>
-        
-        <ScrambledText 
-          className="text-4xl md:text-6xl font-sans font-bold text-brand-text tracking-tight mb-4 !m-0 !max-w-none !font-sans relative z-10" 
-          scrambleChars=".:"
-          speed={0.4}
-          duration={1}
-          radius={30}
+      {/* Interactive 3D Lanyard Hero Canvas */}
+      <div className="relative w-full h-[220px] md:h-[280px] z-10 flex items-center justify-center -mt-8">
+        <Lanyard
+          position={[0, 0, 21.05]}
+          gravity={[0, -40, 0]}
+          frontImage={frontImage}
+          backImage={backImage}
+          onPull={onStart}
+        />
+      </div>
+
+      {/* Main Title & Action Section */}
+      <div className="z-20 flex flex-col items-center max-w-4xl px-6 text-center pb-8 pt-2 w-full relative mt-0 pointer-events-none">
+        <motion.h1
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          className="text-3xl md:text-5xl font-mono font-bold tracking-widest text-brand-text uppercase shadow-black drop-shadow-lg mb-2"
         >
-          Enterprise Prompt Security
-        </ScrambledText>
-        
-        <p className="text-base md:text-lg text-brand-muted max-w-2xl mb-8 leading-relaxed mt-4 relative z-10">
-          Scan, redact, and rewrite your prompts before submission. Prevent sensitive data leaks, calculate risk scores, and enforce Privacy-by-Design in your workflows.
+          SECURE PROMPT
+        </motion.h1>
+
+        <p className="text-sm md:text-base text-brand-muted max-w-2xl mb-6 leading-relaxed">
+          Enterprise Prompt Security & Privacy Firewall. Scan your prompts before they reach external AI assistants. Detect sensitive data, assess risk, redact confidential information, and generate a safe rewritten prompt.
         </p>
 
-        <div className="w-full mb-10 relative z-10">
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-12 pointer-events-auto">
+          <button
+            onClick={onStart}
+            className="group flex items-center gap-3 bg-brand-text text-brand-base px-8 py-4 rounded-lg font-mono font-bold tracking-widest text-sm hover:bg-risk-pii hover:text-[#0B0F17] transition-all duration-300 cursor-pointer shadow-lg shadow-brand-text/10"
+          >
+            ENTER SCANNER
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+
+        {/* Feature Highlights Grid */}
+        <div className="w-full relative z-10 pointer-events-auto">
           <MagicBento
             cards={bentoCards}
             textAutoHide={false}
@@ -165,15 +279,7 @@ export const LandingPage = ({ onStart }: LandingPageProps) => {
             glowColor="217, 164, 65"
           />
         </div>
-
-        <button
-          onClick={onStart}
-          className="group flex items-center gap-3 bg-brand-text text-brand-base px-8 py-4 rounded-lg font-mono font-bold tracking-widest text-sm hover:bg-risk-pii hover:text-[#0B0F17] transition-all duration-300 cursor-pointer shadow-lg shadow-brand-text/10 relative z-10"
-        >
-          GET STARTED
-          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-        </button>
-      </motion.div>
+      </div>
     </div>
   );
 };
