@@ -60,7 +60,7 @@ Follow these steps to run Secure Prompt locally on your machine.
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yogisatharla/secure-prompt.git
+   git clone https://github.com/yourusername/secure-prompt.git
    cd secure-prompt
    ```
 
@@ -98,7 +98,7 @@ src/
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/yogisatharla/secure-prompt/issues).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/yourusername/secure-prompt/issues).
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
