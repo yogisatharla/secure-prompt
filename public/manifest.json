@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Secure Prompt - AI Privacy Firewall",
+  "version": "1.0.0",
+  "description": "AI prompt privacy firewall and entity sanitizer that redacts sensitive data before sending prompts to LLMs.",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open Secure Prompt Side Panel"
+  },
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "icons": {
+    "16": "favicon.svg",
+    "48": "favicon.svg",
+    "128": "favicon.svg"
+  }
+}
